@@ -18,6 +18,7 @@ Public Class CUSTOMIRES_MRI_API_Invoice_Create
 
     'This call is required by the Web Form Designer.
     <System.Diagnostics.DebuggerStepThrough()> Private Sub InitializeComponent()
+     ffbdasd
 
     End Sub
 
