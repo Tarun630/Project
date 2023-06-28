@@ -1,0 +1,150 @@
+Imports OpsTechnology.OpsMerchant.Xml.Schema
+Imports OpsTechnology.OpsMerchant.Data.Schema
+Imports OpsTechnology.OpsMerchant.Server.Utility
+Imports OpsTechnology.OpsMerchant.Collections
+Imports AdaptorNamespace
+Imports Microsoft.VisualBasic
+Imports System.Collections
+Imports System.Text
+Imports System.IO
+Imports System
+Imports System.Threading
+Imports System.Xml
+Imports Microsoft.VisualBasic.ApplicationServices
+
+Public Class CUSTOMIRES_MRI_API_Invoice_Create
+    Inherits System.Web.UI.Page
+#Region " Web Form Designer Generated Code "
+
+    'This call is required by the Web Form Designer.
+    <System.Diagnostics.DebuggerStepThrough()> Private Sub InitializeComponent()
+
+    End Sub
+
+    'NOTE: The following placeholder declaration is required by the Web Form Designer.
+    'Do not delete or move it.
+    Private designerPlaceholderDeclaration As System.Object
+    Private SupplierInvoiceNumber As String
+
+    Private Sub Page_Init(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Init
+        'CODEGEN: This method call is required by the Web Form Designer
+        'Do not modify it using the code editor.
+        InitializeComponent()
+    End Sub
+
+#End Region
+    Protected Sub Page_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
+        Dim AdpLib As New AdaptorNamespace.AdaptorLibrary(Request, Response)
+
+        AdpLib.Variable.Add("SchemaFormat", Server.MapPath("..\Schema\CUSTOMIRES_MRI_API_Invoice_Create.xml"))
+
+        MainProcessing(AdpLib)
+    End Sub
+    Public Sub MainProcessing(ByRef AdpLib As AdaptorNamespace.AdaptorLibrary)
+
+        Dim InDoc As String
+        Dim OutDoc As String
+        Dim nStatusCode As Integer
+        Dim sStatusMessage As String
+
+
+        nStatusCode = AdpLib.STATUS_SUCCESS
+        sStatusMessage = "Document Processed Successfully"
+
+        Try
+
+            InDoc = AdpLib.READ_DATA
+
+            If InDoc.Trim = "" Then
+                Throw New Exception("Invalid or Missing Input Document. InDoc.length = " & (InDoc.Trim).Length)
+            End If
+
+
+            Dim root As OpsXmlNode
+
+            Dim vxOpsList As Collection
+            Dim vxInvoice As Invoice
+            Dim vxInvoiceList As InvoiceList
+
+            Dim vxLineItem As LineItem
+            Dim vxLineItemList As LineItemList
+            Dim vxOpsLineItem As OpsXmlNode
+            Dim vxOpsLineItemSortedList As SortedList
+            Dim buffer As New System.Text.StringBuilder("")
+
+            root = New OpsXmlNode(InDoc)
+            vxOpsList = root.SelectNodes("InvoiceList.Invoice")
+
+
+            vxInvoiceList = LoadXML(InDoc, GetType(InvoiceList))
+
+            OutDoc = Execute(AdpLib, vxInvoiceList, vxLineItemList)
+
+        Catch ex As Exception
+            nStatusCode = AdpLib.STATUS_FAILURE
+            sStatusMessage = "Adaptor Exception: " + ex.ToString
+
+        Finally
+            AdpLib.CHECK_ERROR(Err.Number, Err.Description)
+            AdpLib.RETURN_RESPONSE(nStatusCode, sStatusMessage, OutDoc)
+
+        End Try
+    End Sub
+    Function Execute(ByRef AdpLib As AdaptorNamespace.AdaptorLibrary, ByRef vxInvoiceList As InvoiceList, ByRef vxLineItemList As LineItemList) As String
+        Dim vxNode As OpsXmlNode
+        Dim OutSample As String
+        Dim InvoiceCount As Integer
+        Dim TotalInvoiceCount As Integer
+        Dim vxOpsLineItemList As Collection
+        Dim vxOpsNode As OpsXmlNode
+
+
+        Dim vxInvoice As Invoice
+
+
+        OutSample = OpsTechnology.OpsMerchant.Transport.Talk.FileTalk.ReadFile(AdpLib.Variable.Item("SchemaFormat"))
+        vxNode = New OpsXmlNode(OutSample)
+
+        InvoiceCount = vxInvoiceList.Invoice.Count
+        TotalInvoiceCount = TotalInvoiceCount + InvoiceCount
+
+        For i = 0 To InvoiceCount - 1
+            vxInvoice = vxInvoiceList.Invoice.Item(i)
+
+            With vxInvoice.InvoiceHeader
+                With .InvoiceIdentifier
+                    vxNode.SetElement("CUSTOMIRESMRIAPInvoiceCreate.NINVC.INVOICENUMBER", .SupplierInvoiceNumber)
+                    vxNode.SetElement("CUSTOMIRESMRIAPInvoiceCreate.NINVC.InvoiceOID", .InvoiceOID)
+
+                End With
+                With .Supplier
+                    vxNode.SetElement("CUSTOMIRESMRIAPInvoiceCreate.NINVC.VENDCODE", .CustomerSupplierCode)
+                End With
+                vxNode.SetElement("CUSTOMIRESMRIAPInvoiceCreate.NINVC.EXPPED", .InvoicePostingDate)
+                vxNode.SetElement("CUSTOMIRESMRIAPInvoiceCreate.NINVC.NINVCDATE", .InvoiceDate.Replace("/", "-"))
+                With .Totals
+                    vxNode.SetElement("CUSTOMIRESMRIAPInvoiceCreate.NINVC.NINVCAMT", .GrandTotal)
+                End With
+                vxNode.SetElement("CUSTOMIRESMRIAPInvoiceCreate.NINVC.LASTDATE", .InvoiceApproveDate)
+                With .OrderIdentifier
+                    vxNode.SetElement("CUSTOMIRESMRIAPInvoiceCreate.NINVC.PONUM", .PurchaseOrderNumber)
+                End With
+                With .Customer
+                    With .Buyer
+                        vxNode.SetElement("CUSTOMIRESMRIAPInvoiceCreate.NINVC.INIT", .FirstName)
+                    End With
+
+                End With
+
+            End With
+
+
+        Next
+
+
+        Return vxNode.ToString
+
+    End Function
+
+
+End Class
